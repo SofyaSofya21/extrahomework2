@@ -87,6 +87,7 @@ int ReadInt(string message)
     return Convert.ToInt32(Console.ReadLine());
 }
 
+// метод для считывания текстового ввода с возможностью выхода из программы
 string ReadString(string message)
 {
     Console.WriteLine(message);
