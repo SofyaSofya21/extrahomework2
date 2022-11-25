@@ -41,10 +41,10 @@ Console.WriteLine("Валюты, с которыми Вы можете рабо�
 Console.WriteLine();
 
 Console.WriteLine("Введите имеющееся количество денежных едениц");
-double rubAmount = ReadInt("В рублях: ");
-double usdAmount = ReadInt("В долларах: ");
-double eurAmount = ReadInt("В евро: ");
-double rmbAmount = ReadInt("В юанях: ");
+double rubAmount = ReadDouble("В рублях: ");
+double usdAmount = ReadDouble("В долларах: ");
+double eurAmount = ReadDouble("В евро: ");
+double rmbAmount = ReadDouble("В юанях: ");
 
 double originCurrencyAmount = 0;
 double transferAmount = 0;
@@ -81,7 +81,7 @@ while (!programstop)
             bool correctInput = false; //ввод суммы перевода с проверкой на корректность ввода
             while (!correctInput)
             {
-                transferAmount = ReadInt("Какую сумму будем переводить? ");
+                transferAmount = ReadDouble("Какую сумму будем переводить? ");
                 if (transferAmount <= originCurrencyAmount && transferAmount >= 0)
                 {
                     correctInput = true;
@@ -113,10 +113,11 @@ while (!programstop)
 
 Console.WriteLine("Спасибо за использование конвертера! Хорошего дня!");
 
-int ReadInt(string message)
+
+double ReadDouble(string message)
 {
     Console.Write(message);
-    return Convert.ToInt32(Console.ReadLine());
+    return Convert.ToDouble(Console.ReadLine());
 }
 
 // метод для считывания текстового ввода с возможностью выхода из программы
@@ -124,10 +125,6 @@ string ReadString(string message)
 {
     Console.WriteLine(message);
     string input = Console.ReadLine();
-    if (input == "Exit")
-    {
-        programstop = true;
-    }
     return input;
 }
 
