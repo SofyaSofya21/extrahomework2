@@ -4,8 +4,40 @@
 // Курс конвертации просто описать в программе. 
 // Программа заканчивает свою работу в тот момент, когда решит пользователь.
 
+// Библиотеки курсов валют
+var rubRate = new Dictionary<string, double>()
+{
+    {"rub", 1},
+    {"usd", 1/ 60.37},
+    {"eur", 1/62.88},
+    {"rmb", 1/8.52}
+};
+var usdRate = new Dictionary<string, double>()
+{
+    {"usd", 1},
+    {"rub", 1 / rubRate["usd"]},
+    {"eur", rubRate["eur"] / rubRate["usd"]},
+    {"rmb", rubRate["rmb"] / rubRate["usd"]},
+};
+var eurRate = new Dictionary<string, double>()
+{
+    {"eur", 1},
+    {"rub", 1 / rubRate["eur"]},
+    {"usd", rubRate["usd"] / rubRate["eur"]},
+    {"rmb", rubRate["rmb"] / rubRate["eur"]}
+};
+var rmbRate = new Dictionary<string, double>()
+{
+    {"rmb", 1},
+    {"rub", 1 / rubRate["rmb"]},
+    {"usd", rubRate["usd"] / rubRate["rmb"]},
+    {"eur", rubRate["eur"] / rubRate["rmb"]}
+};
+Dictionary<string, double> rates = new Dictionary<string, double>();
+
 
 PrintMenu("Это программа-конвертер валют. Список доступных команд:");
+Console.WriteLine("Валюты, с которыми Вы можете работать: rub, usd, eur, rmb");
 Console.WriteLine();
 
 Console.WriteLine("Введите имеющееся количество денежных едениц");
@@ -14,25 +46,20 @@ double usdAmount = ReadInt("В долларах: ");
 double eurAmount = ReadInt("В евро: ");
 double rmbAmount = ReadInt("В юанях: ");
 
-double samecurrency = 1;
-double rubusd = 0.017;
-double rubeur = 0.016;
-double rubrmb = 0.12;
-double usdeur = 0.97;
-double usdrmb = 7.12;
-double eurrmb = 7.36;
-double usdrub = 1 / rubusd;
-double eurrub = 1 / rubeur;
-double rmbrub = 1 / rubrmb;
-double eurusd = 1 / usdeur;
-double rmbusd = 1 / usdrmb;
-double rmbeur = 1 / eurrmb;
-
-
-double[,] rates = new double[4, 4] { { samecurrency, rubusd, rubeur, rubrmb }, { usdrub, samecurrency, usdeur, usdrmb }, { eurrub, eurusd, samecurrency, eurrmb }, { rmbrub, rmbusd, rmbeur, samecurrency } };
+double originCurrencyAmount = 0;
+double transferAmount = 0;
+double transferAmountinRub = 0;
+double transferAmountinUsd = 0;
+double transferAmountinEur = 0;
+double transferAmountinRmb = 0;
+double transferAmountConverted = 0;
+double transferAmountConvertedtoRub = 0;
+double transferAmountConvertedtoUsd = 0;
+double transferAmountConvertedtoEur = 0;
+double transferAmountConvertedtoRmb = 0;
 
 bool programstop = false;
-while(!programstop)
+while (!programstop)
 {
     string command = ReadString("Введите команду: ");
     switch (command)
@@ -41,42 +68,47 @@ while(!programstop)
             PrintMenu("Список доступных команд:");
             break;
         case "Convert":
-            bool correctCurrency = false;
-            while (!correctCurrency)
+            string purpose = ReadCurrencyName("Какая целевая валюта конвертации? ");
+            ConvertBalance(purpose);
+            break;
+        case "Transfer":
+            Console.WriteLine("Данная команда позволяет сделать перевод денег из одной валюты в другую.");
+            originCurrencyAmount = 0;
+
+            string originCurrency = ReadCurrencyName("Из какой валюты будет сделан перевод? ");
+            SwitchToCurrency(originCurrency); // получаем значение, сколько у нас валюты, которую можно перевести
+
+            bool correctInput = false; //ввод суммы перевода с проверкой на корректность ввода
+            while (!correctInput)
             {
-                string purpose = ReadString("Какая целевая валюта конвертации? ");
-                // ниже условия для названия валют, но разумнее было бы расписать последовательную проверку, 
-                // чтобы программу можно было адаптировать и под другие валюты и большее количество валют
-                if (purpose == "rub" || purpose == "usd" || purpose == "eur" || purpose == "rmb")
+                transferAmount = ReadInt("Какую сумму будем переводить? ");
+                if (transferAmount <= originCurrencyAmount && transferAmount >= 0)
                 {
-                    ConvertBalance(purpose);
-                    correctCurrency = true;
-                }
-                else if (purpose == "Exit")
-                // как отсюда сделать выход вообще из программы?
-                {
-                    correctCurrency = true;
+                    correctInput = true;
                 }
                 else
                 {
-                    Console.WriteLine("Вы ввели некорректное название валюты либо программа еще не поддерживает перевод в данную валюту.");
+                    Console.Write($"Вы ввели некорректную сумму. Введите значение от 0 до {originCurrencyAmount}. ");
                 }
             }
-            break;
-        case "Transfer":
-            Console.WriteLine("Данная команда позволяет сделать перевод денег из одной валюты, в другую.");
-            TransferOperation();
+
+            string finalCurrency = ReadCurrencyName("В какую валюту будет сделан перевод? ");
+            transferAmountConverted = ConvertCurrency(originCurrency, finalCurrency, transferAmount);
+
+            SwitchToCurrency(originCurrency, finalCurrency); // присваиваем значения, которые нужны для уменьшения и увеличения валют
+
+            TransferCurrency();
             break;
         case "Balance":
             PrintBalance();
             break;
-            
-        
+        case "Exit":
+            programstop = true;
+            break;
         default:
             Console.WriteLine("Вы ввели некорректную команду.");
             break;
     }
-
 }
 
 Console.WriteLine("Спасибо за использование конвертера! Хорошего дня!");
@@ -92,7 +124,7 @@ string ReadString(string message)
 {
     Console.WriteLine(message);
     string input = Console.ReadLine();
-    if(input == "Exit")
+    if (input == "Exit")
     {
         programstop = true;
     }
@@ -100,43 +132,27 @@ string ReadString(string message)
 }
 
 // метод конвертации из 1 валюты в другую
-double Convertor(string ourCurrency, string purposeCurrency, double amount)
+double ConvertCurrency(string ourCurrency, string purposeCurrency, double amount)
 {
-    int index2 = 0;
-    int index1 = 0;
-    double balanceAmount = amount;
-    switch (ourCurrency)
-    {
-        case "rub":
-            index1 = 0;
-            break;
-        case "usd":
-            index1 = 1;
-            break;
-        case "eur":
-            index1 = 2;
-            break;
-        case "rmb":
-            index1 = 3;
-            break;
-    }
-    switch (purposeCurrency)
-    {
-        case "rub":
-            index2 = 0;
-            break;
-        case "usd":
-            index2 = 1;
-            break;
-        case "eur":
-            index2 = 2;
-            break;
-        case "rmb":
-            index2 = 3;
-            break;
-    }
-    double convertResult = balanceAmount * rates[index1, index2];
+    double convertResult = 0;
+    SwitchToCurrency(ourCurrency);
+    convertResult = amount * rates[purposeCurrency];
     return convertResult;
+}
+
+// метод конвертации всего баланса в заданную валюту
+void ConvertBalance(string currency)
+{
+    double rubConvert = ConvertCurrency("rub", currency, rubAmount);
+    double usdConvert = ConvertCurrency("usd", currency, usdAmount);
+    double eurConvert = ConvertCurrency("eur", currency, eurAmount);
+    double rmbConvert = ConvertCurrency("rmb", currency, rmbAmount);
+    double totalConvert = rubConvert + usdConvert + eurConvert + rmbConvert;
+    Console.WriteLine($"1. Рубли: {rubAmount} -> {rubConvert} {currency}");
+    Console.WriteLine($"2. Доллары: {usdAmount} -> {usdConvert} {currency}");
+    Console.WriteLine($"3. Евро: {eurAmount} -> {eurConvert} {currency}");
+    Console.WriteLine($"4. Юани: {rmbAmount} -> {rmbConvert} {currency}");
+    Console.WriteLine($"Общий баланс в {currency}: {totalConvert} {currency}");
 }
 
 // метод вывода баланса
@@ -148,19 +164,18 @@ void PrintBalance()
     Console.WriteLine($"4. Юани: {rmbAmount}");
 }
 
-// метод конвертации всего баланса в заданную валюту
-void ConvertBalance(string currency)
+// метод перевода денег из одной валюты в другую
+void TransferCurrency()
 {
-    double rubConvert = Convertor("rub", currency, rubAmount);
-    double usdConvert = Convertor("usd", currency, usdAmount);
-    double eurConvert = Convertor("eur", currency, eurAmount);
-    double rmbConvert = Convertor("rmb", currency, rmbAmount);
-    double totalConvert = rubConvert + usdConvert + eurConvert + rmbConvert;
-    Console.WriteLine($"1. Рубли: {rubAmount} -> {rubConvert} {currency}");
-    Console.WriteLine($"2. Доллары: {usdAmount} -> {usdConvert} {currency}");
-    Console.WriteLine($"3. Евро: {eurAmount} -> {eurConvert} {currency}");
-    Console.WriteLine($"4. Юани: {rmbAmount} -> {rmbConvert} {currency}");
-    Console.WriteLine($"Общий баланс в {currency}: {totalConvert} {currency}");
+    rubAmount = rubAmount - transferAmountinRub + transferAmountConvertedtoRub;
+    usdAmount = usdAmount - transferAmountinUsd + transferAmountConvertedtoUsd;
+    eurAmount = eurAmount - transferAmountinEur + transferAmountConvertedtoEur;
+    rmbAmount = rmbAmount - transferAmountinRmb + transferAmountConvertedtoRmb;
+    Console.WriteLine("Конвертация прошла успешно. Ваш текущий баланс:");
+    Console.WriteLine($"1. Рубли: {rubAmount}");
+    Console.WriteLine($"2. Доллары: {usdAmount}");
+    Console.WriteLine($"3. Евро: {eurAmount}");
+    Console.WriteLine($"4. Юани: {rmbAmount}");
 }
 
 // метод вывода меню
@@ -174,108 +189,93 @@ void PrintMenu(string message)
     Console.WriteLine("5. Exit - завершение программы");
 }
 
-// метод перевода заданной суммы из одной валюты в другую
-void TransferOperation()
+// switch for ConvertCurrency
+void SwitchToCurrency(string currencyName, string finalCurrencyName = "0")
 {
-string originCurrency = "0";
-string finalCurrency = "0";
-double transferAmount = 0;
-
-bool correctInput1 = false; //ввод валюты, из кот переводим с проверкой на корректность ввода
-while (!correctInput1)
-{
-    originCurrency = ReadString("Из какой валюты будет сделан перевод?");
-    if (originCurrency == "rub" || originCurrency == "usd" || originCurrency == "eur" || originCurrency == "rmb")
+    // сначала обнулим все значения, для корректной работы при повторных транзакциях
+    transferAmountinRub = 0;
+    transferAmountinUsd = 0;
+    transferAmountinEur = 0;
+    transferAmountinRmb = 0;
+    transferAmountConvertedtoRub = 0;
+    transferAmountConvertedtoUsd = 0;
+    transferAmountConvertedtoEur = 0;
+    transferAmountConvertedtoRmb = 0;
+    // указываем какие курсы используем
+    // задаем величину доступной для перевода суммы 
+    // указываем сумму, на кот уменьшим валюту в результате транзакции
+    switch (currencyName)
     {
-        correctInput1 = true;
+        case "rub":
+            rates = new Dictionary<string, double>(rubRate);
+            originCurrencyAmount = rubAmount;
+            transferAmountinRub = transferAmount;
+            break;
+        case "usd":
+            rates = new Dictionary<string, double>(usdRate);
+            originCurrencyAmount = usdAmount;
+            transferAmountinUsd = transferAmount;
+            break;
+        case "eur":
+            rates = new Dictionary<string, double>(eurRate);
+            originCurrencyAmount = eurAmount;
+            transferAmountinEur = transferAmount;
+            break;
+        case "rmb":
+            rates = new Dictionary<string, double>(rmbRate);
+            originCurrencyAmount = rmbAmount;
+            transferAmountinRmb = transferAmount;
+            break;
     }
-    else
+    // указываем сумму, на кот увелиичим валюту в результате транзакции
+    switch (finalCurrencyName)
     {
-        Console.Write("Вы ввели некорректное значение. Введите название одной из валют. ");
+        case "rub":
+            transferAmountConvertedtoRub = transferAmountConverted;
+            break;
+        case "usd":
+            transferAmountConvertedtoUsd = transferAmountConverted;
+            break;
+        case "eur":
+            transferAmountConvertedtoEur = transferAmountConverted;
+            break;
+        case "rmb":
+            transferAmountConvertedtoRmb = transferAmountConverted;
+            break;
     }
-}
+};
 
-double originCurrencyAmount = 0;
-switch (originCurrency)
+// метод считывания валюты с проверкой корректности ввода
+string ReadCurrencyName(string message)
 {
-    case "rub":
-        originCurrencyAmount = rubAmount;
-        break;
-    case "usd":
-        originCurrencyAmount = usdAmount;
-        break;
-    case "eur":
-        originCurrencyAmount = eurAmount;
-        break;
-    case "rmb":
-        originCurrencyAmount = rmbAmount;
-        break;
-}
-bool correctInput2 = false; //ввод суммы перевода с проверкой на корректность ввода
-while (!correctInput2)
-{
-    transferAmount = ReadInt("Какую сумму будем переводить? ");
-    if (transferAmount <= originCurrencyAmount && transferAmount >= 0)
+    Console.WriteLine(message);
+    string currencyName = "0";
+    bool correctCurrency = false;
+    while (!correctCurrency)
     {
-        correctInput2 = true;
+        currencyName = Console.ReadLine();
+        // ниже условия для названия валют, но разумнее было бы расписать последовательную проверку, 
+        // чтобы программу можно было адаптировать и под другие валюты и большее количество валют
+        if (currencyName == "rub" || currencyName == "usd" || currencyName == "eur" || currencyName == "rmb")
+        {
+            correctCurrency = true;
+        }
+        else if (currencyName == "Exit")
+        // как отсюда сделать выход вообще из программы?
+        {
+            programstop = true;
+            correctCurrency = true;
+        }
+        else
+        {
+            Console.WriteLine("Вы ввели некорректное название валюты либо программа еще не поддерживает перевод в данную валюту. Введите валюту еще раз.");
+        }
     }
-    else
-    {
-        Console.Write($"Вы ввели некорректную сумму. Введите значение от 0 до {originCurrencyAmount}. ");
-    }
+    return currencyName;
 }
 
-bool correctInput3 = false; //ввод валюты, в кот переводим с проверкой на корректность ввода
-while (!correctInput3)
-{
-    finalCurrency = ReadString("В какую валюту будет сделан перевод?");
-    if (finalCurrency == "rub" || finalCurrency == "usd" || finalCurrency == "eur" || finalCurrency == "rmb")
-    {
-        correctInput3 = true;
-    }
-    else
-    {
-        Console.Write("Вы ввели некорректное значение. Введите название одной из валют. ");
-    }
-}
 
-double transferConvert = Convertor(originCurrency, finalCurrency, transferAmount);
 
-// уменьшаем валюту, из которой переводим 
-switch (originCurrency)
-{
-    case "rub":
-        rubAmount -= transferAmount;
-        break;
-    case "usd":
-        usdAmount -= transferAmount;
-        break;
-    case "eur":
-        eurAmount -= transferAmount;
-        break;
-    case "rmb":
-        rmbAmount -= transferAmount;
-        break;
-}
 
-//увеличиваем валюту, в которую переводим
-switch (finalCurrency)
-{
-    case "rub":
-        rubAmount += transferConvert;
-        break;
-    case "usd":
-        usdAmount += transferConvert;
-        break;
-    case "eur":
-        eurAmount += transferConvert;
-        break;
-    case "rmb":
-        rmbAmount += transferConvert;
-        break;
-}
 
-Console.WriteLine("Ваш баланс после осуществления перевода:");
-PrintBalance();
-}
 
